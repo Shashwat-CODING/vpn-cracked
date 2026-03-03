@@ -4,6 +4,8 @@ import { logger } from 'hono/logger';
 import apiRoutes from './routes/api.js';
 import jioRoutes from './routes/jiosaavn.js';
 import ytRoutes from './routes/youtube.js';
+import entityRoutes from './routes/entities.js';
+import exploreRoutes from './routes/explore.js';
 
 const app = new Hono();
 
@@ -16,6 +18,8 @@ app.get('/health', (c) => c.json({ status: 'ok', time: new Date().toISOString() 
 app.route('/api', apiRoutes);
 app.route('/api', jioRoutes);
 app.route('/api', ytRoutes);
+app.route('/api', entityRoutes);
+app.route('/api', exploreRoutes);
 
 app.notFound((c) => c.json({ error: 'Not Found' }, 404));
 app.onError((err, c) => {

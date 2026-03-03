@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { YTMusic } from '../lib/ytmusicapi.js';
-import { YouTubeSearch } from '../lib/youtube-search.js';
-import { getYouTubeSong } from '../lib/get_youtube_song.js';
-import { getSimilarTracks } from '../lib/lastfm_api.js';
+import { YTMusic } from '../../lib/ytmusicapi.js';
+import { YouTubeSearch } from '../../lib/youtube-search.js';
+import { getYouTubeSong } from '../../lib/get_youtube_song.js';
+import { getSimilarTracks } from '../../lib/lastfm_api.js';
 
 const api = new Hono();
 const ytmusic = new YTMusic();

@@ -9,12 +9,12 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
-    "hono": "^4.0.0",
     "fast-xml-parser": "^4.4.0",
+    "hono": "^4.0.0",
     "youtubei.js": "^16.0.1"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.69.0"
   },
   "engines": {
     "node": ">=18.0.0"

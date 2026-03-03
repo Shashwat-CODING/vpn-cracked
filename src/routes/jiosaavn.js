@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { JioSaavn } from '../lib/jiosaavn.js';
+import { JioSaavn } from '../../lib/jiosaavn.js';
 
 const jiosaavn = new JioSaavn();
 const api = new Hono();

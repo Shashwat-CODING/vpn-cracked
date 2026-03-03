@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { YouTubeSearch } from '../lib/youtube-search.js';
+import { YouTubeSearch } from '../../lib/youtube-search.js';
 
 const youtubeSearch = new YouTubeSearch();
 const api = new Hono();
