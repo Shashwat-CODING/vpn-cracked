@@ -58,15 +58,12 @@ function parseRelatedSongs(data, currentVideoId) {
         const panel = item?.playlistPanelVideoRenderer;
         if (!panel) continue;
 
-        // Skip the currently playing song
-        if (panel.videoId === currentVideoId) continue;
-
         let thumbnailUrl = panel.thumbnail?.thumbnails?.[0]?.url || '';
         if (thumbnailUrl) {
           thumbnailUrl = thumbnailUrl.replace(/=w\d+-h\d+(-l\d+)?(-rj)?$/, '=w500-h500');
         }
 
-        songs.push({
+        const song = {
           videoId: panel.videoId || '',
           title: panel.title?.runs?.[0]?.text || 'Unknown Title',
           artist: panel.longBylineText?.runs?.[0]?.text
@@ -76,7 +73,14 @@ function parseRelatedSongs(data, currentVideoId) {
           duration: panel.lengthText?.runs?.[0]?.text
             || panel.lengthText?.simpleText
             || null
-        });
+        };
+
+        // Put the requested song first, rest follow in order
+        if (panel.videoId === currentVideoId) {
+          songs.unshift(song);
+        } else {
+          songs.push(song);
+        }
       }
     }
   } catch (err) {
