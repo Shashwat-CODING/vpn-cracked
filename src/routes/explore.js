@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { YTMusic } from '../../lib/ytmusicapi.js';
+import youtubeiClient from '../../lib/youtubei-client.js';
 
 const api = new Hono();
 const ytmusic = new YTMusic();
@@ -50,6 +51,13 @@ api.get('/watch_playlist', async (c) => {
         const data = await ytmusic.getWatchPlaylist(videoId, playlistId, radio === 'true', shuffle === 'true', parseInt(limit));
         return c.json(data);
     } catch (error) { return c.json({ error: error.message }, 500); }
+});
+ 
+api.get('/feed', async (c) => {
+    try {
+        const data = await youtubeiClient.getTrending();
+        return c.json(data);
+    } catch (e) { return c.json({ error: e.message }, 500); }
 });
 
 export default api;

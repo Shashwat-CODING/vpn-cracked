@@ -16,7 +16,7 @@ api.get('/songs/:videoId', async (c) => {
 api.get('/albums/:browseId', async (c) => {
     try {
         const browseId = c.req.param('browseId');
-        const data = await youtubeiClient.getAlbum(browseId);
+        const data = await ytmusic.getAlbum(browseId);
         return c.json(data);
     } catch (e) { return c.json({ error: e.message }, 500); }
 });
@@ -32,7 +32,7 @@ api.get('/artists/:browseId', async (c) => {
 api.get('/playlists/:playlistId', async (c) => {
     try {
         const playlistId = c.req.param('playlistId');
-        const data = await youtubeiClient.getPlaylist(playlistId);
+        const data = await ytmusic.getPlaylist(playlistId);
         return c.json(data);
     } catch (e) { return c.json({ error: e.message }, 500); }
 });

@@ -9,7 +9,7 @@ const ytmusic = new YTMusic();
 const youtubeSearch = new YouTubeSearch();
 
 const ALLOWED_FILTERS = new Set([
-    'songs', 'videos', 'albums', 'artists', 'playlists', 'profiles', 'podcasts', 'episodes', 'community_playlists'
+    'songs', 'videos', 'albums', 'artists', 'playlists', 'profiles', 'podcasts', 'episodes', 'community_playlists', 'channels'
 ]);
 
 // Helper for parsing video from browse (integrated into index for now or as util)
