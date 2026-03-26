@@ -1,0 +1,1283 @@
+const express = require('express');
+
+const router = express.Router();
+const { getSimilarTracks, LASTFM_API_KEY } = require('../lib/lastfm_api');
+const { getYouTubeSong } = require('../lib/get_youtube_song');
+const youtubeiClient = require('../lib/youtubei-client');
+const axios = require('axios');
+
+const ALLOWED_FILTERS = new Set([
+  'songs',
+  'videos',
+  'albums',
+  'artists',
+  'playlists',
+  'profiles',
+  'podcasts',
+  'episodes',
+  'community_playlists'
+]);
+
+// Minimal in-memory demo: maps session tokens to subscribed channel IDs.
+// Example: sessionToChannelIds.set('demo', new Set(['UC-Example']));
+const sessionToChannelIds = new Map();
+
+// YouTube.js removed - using direct Browse API instead
+
+// mapVideoToStreamItem removed - using parseVideoFromBrowse instead
+
+async function fetchChannelItems(channelId, perChannelLimit) {
+  // Use YouTube Browse API instead of YouTube.js or RSS
+  return await fetchChannelItemsBrowse(channelId, perChannelLimit);
+}
+
+// httpsGet removed - using axios instead
+
+async function fetchChannelItemsBrowse(channelId, perChannelLimit) {
+  try {
+    console.log(`[BROWSE] Fetching channel ${channelId} with limit ${perChannelLimit}`);
+
+    // YouTube Browse API endpoint
+    const url = 'https://www.youtube.com/youtubei/v1/browse?prettyPrint=false';
+
+    // Request payload for channel videos - using realistic context
+    const payload = {
+      browseId: channelId,
+      context: {
+        client: {
+          hl: "en",
+          gl: "IN",
+          remoteHost: "2a09:bac5:3b43:1aaa:0:0:2a8:78",
+          deviceMake: "Apple",
+          deviceModel: "",
+          visitorData: "Cgtkc19JRmZ1RXdvNCiWj7fHBjIKCgJJThIEGgAgPQ%3D%3D",
+          userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36,gzip(gfe)",
+          clientName: "WEB",
+          clientVersion: "2.20251013.01.00",
+          osName: "Macintosh",
+          osVersion: "10_15_7",
+          originalUrl: `https://www.youtube.com/channel/${channelId}/videos`,
+          platform: "DESKTOP",
+          clientFormFactor: "UNKNOWN_FORM_FACTOR",
+          configInfo: {
+            appInstallData: "CJaPt8cGEODpzxwQ-ofQHBCHrM4cEPnQzxwQ3rzOHBDaitAcEMj3zxwQlIPQHBDhjNAcEJWxgBMQ9quwBRDYjdAcEMvRsQUQzo3QHBDa984cEMT0zxwQmejOHBCYuc8cELj2zxwQ18GxBRCzkM8cELargBMQzN-uBRCIh7AFEN7pzxwQ0-GvBRCW288cEKaasAUQieiuBRDRsYATEJGM_xIQgffPHBD7tM8cENmF0BwQ_LLOHBC9irAFEMXDzxwQlP6wBRCNzLAFELvZzhwQgpTQHBDni9AcENaN0BwQuOTOHBCc188cEPLozxwQ4tSuBRC-poATEJX3zxwQq_jOHBDJ968FEK7WzxwQjOnPHBCZjbEFEJ3QsAUQ4M2xBRD3qoATEJuI0BwQudnOHBC9tq4FEIv3zxwQt-TPHBDEgtAcEIKPzxwQre_PHBCZmLEFEJTyzxwQt-r-EhDN0bEFEIHNzhwQmsrPHBCvhs8cEImwzhwQ54_QHBD6_88cEL2ZsAUQ2tHPHBDrgdAcEPXbzxwQqbKAExCKgtAcKkhDQU1TTVJVcS1acS1ETWVVRXYwRXY5VG1DOFBzRkxYTUJvZE1NcUNzQkFQTl93V1FVLUUyeWkya1l1TTNyZ0tjUi1vbkhRYz0wAA%3D%3D"
+          },
+          userInterfaceTheme: "USER_INTERFACE_THEME_DARK",
+          timeZone: "Asia/Calcutta",
+          browserName: "Chrome",
+          browserVersion: "141.0.0.0",
+          memoryTotalKbytes: "8000000",
+          acceptHeader: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+        }
+      }
+    };
+
+    console.log(`[BROWSE] Making request to YouTube API for channel ${channelId}`);
+    const response = await axios.post(url, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Origin': 'https://www.youtube.com',
+        'Referer': `https://www.youtube.com/channel/${channelId}/videos`,
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'same-origin',
+        'Sec-Fetch-Site': 'same-origin',
+        'X-Origin': 'https://www.youtube.com',
+        'X-YouTube-Client-Name': '1',
+        'X-YouTube-Client-Version': '2.20251013.01.00'
+      }
+    });
+
+    console.log(`[BROWSE] YouTube API response status: ${response.status} for channel ${channelId}`);
+
+    const data = response.data;
+    const items = [];
+
+    console.log(`[BROWSE] Response data keys for channel ${channelId}:`, Object.keys(data || {}));
+
+    // Extract channel name from the response
+    let channelName = '';
+    if (data?.header?.c4TabbedHeaderRenderer?.title) {
+      channelName = data.header.c4TabbedHeaderRenderer.title;
+    } else if (data?.metadata?.channelMetadataRenderer?.title) {
+      channelName = data.metadata.channelMetadataRenderer.title;
+    }
+
+    console.log(`[BROWSE] Channel name extracted: "${channelName}" for channel ${channelId}`);
+
+    // Extract videos from the response - comprehensive approach
+    const extractVideos = (contents) => {
+      if (!contents) return;
+
+      console.log(`[BROWSE] Processing ${contents.length} content items for channel ${channelId}`);
+
+      for (let i = 0; i < contents.length; i++) {
+        const item = contents[i];
+        console.log(`[BROWSE] Item ${i} keys:`, Object.keys(item || {}));
+
+        // Handle different video renderer types
+        if (item?.richItemRenderer?.content?.videoRenderer) {
+          console.log(`[BROWSE] Found richItemRenderer.videoRenderer for channel ${channelId}`);
+          const video = item.richItemRenderer.content.videoRenderer;
+          items.push(parseVideoFromBrowse(video, channelId, channelName));
+        } else if (item?.videoRenderer) {
+          console.log(`[BROWSE] Found videoRenderer for channel ${channelId}`);
+          items.push(parseVideoFromBrowse(item.videoRenderer, channelId, channelName));
+        } else if (item?.gridVideoRenderer) {
+          console.log(`[BROWSE] Found gridVideoRenderer for channel ${channelId}`);
+          items.push(parseVideoFromBrowse(item.gridVideoRenderer, channelId, channelName));
+        } else if (item?.playlistVideoRenderer) {
+          console.log(`[BROWSE] Found playlistVideoRenderer for channel ${channelId}`);
+          items.push(parseVideoFromBrowse(item.playlistVideoRenderer, channelId, channelName));
+        } else if (item?.compactVideoRenderer) {
+          console.log(`[BROWSE] Found compactVideoRenderer for channel ${channelId}`);
+          items.push(parseVideoFromBrowse(item.compactVideoRenderer, channelId, channelName));
+        }
+
+        // Handle nested content
+        if (item?.shelfRenderer?.content?.expandedShelfContentsRenderer?.items) {
+          console.log(`[BROWSE] Found shelfRenderer with ${item.shelfRenderer.content.expandedShelfContentsRenderer.items.length} items for channel ${channelId}`);
+          extractVideos(item.shelfRenderer.content.expandedShelfContentsRenderer.items);
+        } else if (item?.shelfRenderer?.content?.horizontalListRenderer?.items) {
+          console.log(`[BROWSE] Found shelfRenderer.horizontalListRenderer with ${item.shelfRenderer.content.horizontalListRenderer.items.length} items for channel ${channelId}`);
+          extractVideos(item.shelfRenderer.content.horizontalListRenderer.items);
+        } else if (item?.horizontalCardListRenderer?.cards) {
+          console.log(`[BROWSE] Found horizontalCardListRenderer with ${item.horizontalCardListRenderer.cards.length} items for channel ${channelId}`);
+          extractVideos(item.horizontalCardListRenderer.cards);
+        } else if (item?.reelShelfRenderer?.content?.horizontalListRenderer?.items) {
+          console.log(`[BROWSE] Found reelShelfRenderer with ${item.reelShelfRenderer.content.horizontalListRenderer.items.length} items for channel ${channelId}`);
+          extractVideos(item.reelShelfRenderer.content.horizontalListRenderer.items);
+        } else if (item?.itemSectionRenderer?.contents) {
+          console.log(`[BROWSE] Found itemSectionRenderer with ${item.itemSectionRenderer.contents.length} items for channel ${channelId}`);
+          extractVideos(item.itemSectionRenderer.contents);
+        } else if (item?.gridRenderer?.items) {
+          console.log(`[BROWSE] Found gridRenderer with ${item.gridRenderer.items.length} items for channel ${channelId}`);
+          extractVideos(item.gridRenderer.items);
+        } else if (item?.horizontalListRenderer?.items) {
+          console.log(`[BROWSE] Found horizontalListRenderer with ${item.horizontalListRenderer.items.length} items for channel ${channelId}`);
+          extractVideos(item.horizontalListRenderer.items);
+        }
+
+        if (perChannelLimit && items.length >= perChannelLimit) break;
+      }
+    };
+
+    // Try different response structures
+    console.log(`[BROWSE] Attempting to extract videos for channel ${channelId}`);
+
+    if (data?.contents?.twoColumnBrowseResultsRenderer?.tabs) {
+      console.log(`[BROWSE] Found twoColumnBrowseResultsRenderer with ${data.contents.twoColumnBrowseResultsRenderer.tabs.length} tabs`);
+      for (let tabIndex = 0; tabIndex < data.contents.twoColumnBrowseResultsRenderer.tabs.length; tabIndex++) {
+        const tab = data.contents.twoColumnBrowseResultsRenderer.tabs[tabIndex];
+        console.log(`[BROWSE] Tab ${tabIndex} keys:`, Object.keys(tab || {}));
+
+        if (tab?.tabRenderer?.content?.sectionListRenderer?.contents) {
+          console.log(`[BROWSE] Extracting from sectionListRenderer with ${tab.tabRenderer.content.sectionListRenderer.contents.length} items`);
+          extractVideos(tab.tabRenderer.content.sectionListRenderer.contents);
+        } else if (tab?.tabRenderer?.content?.richGridRenderer?.contents) {
+          console.log(`[BROWSE] Extracting from richGridRenderer with ${tab.tabRenderer.content.richGridRenderer.contents.length} items`);
+          extractVideos(tab.tabRenderer.content.richGridRenderer.contents);
+        } else {
+          console.log(`[BROWSE] Tab ${tabIndex} content keys:`, Object.keys(tab?.tabRenderer?.content || {}));
+        }
+      }
+    } else if (data?.contents?.singleColumnBrowseResultsRenderer?.tabs) {
+      console.log(`[BROWSE] Found singleColumnBrowseResultsRenderer with ${data.contents.singleColumnBrowseResultsRenderer.tabs.length} tabs`);
+      for (const tab of data.contents.singleColumnBrowseResultsRenderer.tabs) {
+        if (tab?.tabRenderer?.content?.sectionListRenderer?.contents) {
+          console.log(`[BROWSE] Extracting from sectionListRenderer with ${tab.tabRenderer.content.sectionListRenderer.contents.length} items`);
+          extractVideos(tab.tabRenderer.content.sectionListRenderer.contents);
+        } else if (tab?.tabRenderer?.content?.richGridRenderer?.contents) {
+          console.log(`[BROWSE] Extracting from richGridRenderer with ${tab.tabRenderer.content.richGridRenderer.contents.length} items`);
+          extractVideos(tab.tabRenderer.content.richGridRenderer.contents);
+        }
+      }
+    } else if (data?.contents?.sectionListRenderer?.contents) {
+      console.log(`[BROWSE] Found sectionListRenderer with ${data.contents.sectionListRenderer.contents.length} items`);
+      extractVideos(data.contents.sectionListRenderer.contents);
+    } else if (data?.contents?.richGridRenderer?.contents) {
+      console.log(`[BROWSE] Found richGridRenderer with ${data.contents.richGridRenderer.contents.length} items`);
+      extractVideos(data.contents.richGridRenderer.contents);
+    } else {
+      console.log(`[BROWSE] No known content structure found for channel ${channelId}`);
+    }
+
+    console.log(`[BROWSE] Extracted ${items.length} items for channel ${channelId}`);
+    return items.slice(0, perChannelLimit || items.length);
+  } catch (error) {
+    console.error('Browse API error:', error.message);
+    return [];
+  }
+}
+
+function parseVideoFromBrowse(video, channelId, channelName) {
+  const id = video?.videoId || '';
+
+  // Extract title - handle different formats
+  let title = '';
+  if (video?.title?.runs?.[0]?.text) {
+    title = video.title.runs[0].text;
+  } else if (video?.title?.simpleText) {
+    title = video.title.simpleText;
+  } else if (video?.title) {
+    title = String(video.title);
+  }
+
+  // Extract duration - handle different formats
+  let duration = 0;
+
+  // Try multiple duration field variations including thumbnailOverlays
+  const durationFields = [
+    video?.lengthText?.simpleText,
+    video?.lengthText?.runs?.[0]?.text,
+    video?.lengthSeconds,
+    video?.lengthText,
+    video?.duration?.simpleText,
+    video?.duration?.runs?.[0]?.text,
+    video?.duration,
+    video?.length?.simpleText,
+    video?.length?.runs?.[0]?.text,
+    video?.length,
+    // Check thumbnailOverlays for duration
+    video?.thumbnailOverlays?.[0]?.thumbnailOverlayTimeStatusRenderer?.text?.simpleText,
+    video?.thumbnailOverlays?.[0]?.thumbnailOverlayTimeStatusRenderer?.text?.runs?.[0]?.text,
+    video?.thumbnailOverlays?.[1]?.thumbnailOverlayTimeStatusRenderer?.text?.simpleText,
+    video?.thumbnailOverlays?.[1]?.thumbnailOverlayTimeStatusRenderer?.text?.runs?.[0]?.text
+  ];
+
+  for (const field of durationFields) {
+    if (field && duration === 0) {
+      if (typeof field === 'number') {
+        duration = parseInt(field) || 0;
+      } else if (typeof field === 'string') {
+        const parts = field.split(':').map(p => parseInt(p) || 0);
+        if (parts.length === 2) {
+          duration = parts[0] * 60 + parts[1];
+        } else if (parts.length === 3) {
+          duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+        }
+      }
+    }
+    if (duration > 0) break;
+  }
+
+  // Additional check for thumbnailOverlays if still no duration found
+  if (duration === 0 && video?.thumbnailOverlays) {
+    for (const overlay of video.thumbnailOverlays) {
+      if (overlay?.thumbnailOverlayTimeStatusRenderer?.text) {
+        const text = overlay.thumbnailOverlayTimeStatusRenderer.text;
+        const durationText = text.simpleText || text.runs?.[0]?.text || '';
+        if (durationText) {
+          const parts = durationText.split(':').map(p => parseInt(p) || 0);
+          if (parts.length === 2) {
+            duration = parts[0] * 60 + parts[1];
+            break;
+          } else if (parts.length === 3) {
+            duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Debug logging for duration parsing
+  if (duration === 0) {
+    console.log(`[PARSE] Duration parsing failed for video ${id}:`, {
+      lengthText: video?.lengthText,
+      lengthSeconds: video?.lengthSeconds,
+      duration: video?.duration,
+      length: video?.length,
+      title: title.substring(0, 50) + '...',
+      videoKeys: Object.keys(video || {})
+    });
+  }
+
+  // Extract views - handle different formats
+  let views = 0;
+  if (video?.viewCountText?.simpleText) {
+    const viewText = video.viewCountText.simpleText;
+    const match = viewText.match(/([\d,\.]+)([KMB]?)/);
+    if (match) {
+      let num = parseFloat(match[1].replace(/,/g, ''));
+      const suffix = match[2];
+      if (suffix === 'K') num *= 1000;
+      else if (suffix === 'M') num *= 1000000;
+      else if (suffix === 'B') num *= 1000000000;
+      views = Math.floor(num);
+    }
+  } else if (video?.viewCount) {
+    views = parseInt(video.viewCount) || 0;
+  }
+
+  // Extract published date - handle different formats
+  let published = null;
+  if (video?.publishedTimeText?.simpleText) {
+    // Parse relative time like "2 days ago", "1 week ago", etc.
+    const timeText = video.publishedTimeText.simpleText.toLowerCase();
+    const now = Date.now();
+
+    if (timeText.includes('hour')) {
+      const hours = parseInt(timeText.match(/(\d+)/)?.[1] || '1');
+      published = now - (hours * 60 * 60 * 1000);
+    } else if (timeText.includes('day')) {
+      const days = parseInt(timeText.match(/(\d+)/)?.[1] || '1');
+      published = now - (days * 24 * 60 * 60 * 1000);
+    } else if (timeText.includes('week')) {
+      const weeks = parseInt(timeText.match(/(\d+)/)?.[1] || '1');
+      published = now - (weeks * 7 * 24 * 60 * 60 * 1000);
+    } else if (timeText.includes('month')) {
+      const months = parseInt(timeText.match(/(\d+)/)?.[1] || '1');
+      published = now - (months * 30 * 24 * 60 * 60 * 1000);
+    } else if (timeText.includes('year')) {
+      const years = parseInt(timeText.match(/(\d+)/)?.[1] || '1');
+      published = now - (years * 365 * 24 * 60 * 60 * 1000);
+    } else {
+      published = now - (2 * 24 * 60 * 60 * 1000); // Default to 2 days ago
+    }
+  } else if (video?.publishedTime) {
+    published = parseInt(video.publishedTime) || Date.now();
+  }
+
+  const uploaded = published || Date.now();
+
+  // Use channel name from the main response
+  const author = channelName || '';
+
+  // Detect if it's a short (duration <= 60 seconds or has shorts indicators)
+  const isShort = (duration > 0 && duration <= 60) ||
+    video?.isShort === true ||
+    video?.isShorts === true ||
+    video?.badges?.some?.(badge =>
+      badge?.metadataBadgeRenderer?.label?.includes?.('Shorts') ||
+      badge?.metadataBadgeRenderer?.label?.includes?.('SHORTS')
+    ) ||
+    false;
+
+  // Extract thumbnail
+  let thumbnail = '';
+  if (video?.thumbnail?.thumbnails?.length > 0) {
+    // Get the highest resolution thumbnail (usually the last one)
+    const thumbnails = video.thumbnail.thumbnails;
+    thumbnail = thumbnails[thumbnails.length - 1].url;
+  }
+
+  return {
+    id,
+    authorId: channelId,
+    duration: duration.toString(),
+    author,
+    views: views.toString(),
+    uploaded: uploaded.toString(),
+    title,
+    isShort,
+    thumbnail
+  };
+}
+
+
+async function fetchFromInvidious(videoId) {
+  // Hardcoded instances as per request
+  const invidiousInstances = [
+    "https://inv-veltrix.zeabur.app",
+    "https://inv-veltrix-2.zeabur.app"
+  ];
+
+  // Try instances one by one until we find a working one
+  for (const instance of invidiousInstances) {
+    try {
+      const response = await axios.get(`${instance}/api/v1/videos/${videoId}`, {
+        timeout: 10000
+      });
+
+      if (response.data) {
+        // Return exact response from API as requested
+        return response.data;
+      }
+    } catch (error) {
+      // Continue to next instance
+      continue;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * @swagger
+ * /api/music/find:
+ *   get:
+ *     summary: Find a song by name and artist
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the song
+ *       - in: query
+ *         name: artist
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the artist (comma separated for multiple)
+ *     responses:
+ *       200:
+ *         description: Song metadata
+ *       400:
+ *         description: Missing parameters
+ *       404:
+ *         description: Song not found
+ */
+router.get('/music/find', async (req, res) => {
+  const { name, artist } = req.query;
+
+  if (!name || !artist) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required parameters: name and artist are required'
+    });
+  }
+
+  try {
+    const query = `${name} ${artist}`;
+    console.log(`[FIND] Searching for: ${query}`);
+
+    // Use the ytmusic client from app.locals
+    const ytmusic = req.app.locals.ytmusic;
+    const searchResults = await ytmusic.search(query, 'songs');
+
+    if (!searchResults || !searchResults.results || searchResults.results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Song not found'
+      });
+    }
+
+    // Normalize helper
+    const normalize = (s) => String(s || '')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/gi, '')
+      .toLowerCase();
+
+    const nName = normalize(name);
+    const artistsList = artist.split(',').map(a => normalize(a));
+
+    // Find best match in songs
+    let bestMatch = searchResults.results.find(song => {
+      const nSongName = normalize(song.title);
+      const songArtists = (song.artists || []).map(a => normalize(a.name));
+
+      const titleMatch = nSongName.includes(nName) || nName.includes(nSongName);
+      const artistMatch = artistsList.some(a =>
+        songArtists.some(sa => sa.includes(a) || a.includes(sa))
+      );
+
+      return titleMatch && artistMatch;
+    });
+
+    // If no match in songs, try searching videos
+    if (!bestMatch) {
+      console.log(`[FIND] No song match found, trying videos filter...`);
+      const videoResults = await ytmusic.search(query, 'videos');
+
+      if (videoResults && videoResults.results && videoResults.results.length > 0) {
+        bestMatch = videoResults.results.find(video => {
+          const nVideoTitle = normalize(video.title);
+          const videoArtists = (video.artists || []).map(a => normalize(a.name));
+
+          const titleMatch = nVideoTitle.includes(nName) || nName.includes(nVideoTitle);
+          const artistMatch = artistsList.some(a =>
+            videoArtists.some(sa => sa.includes(a) || a.includes(sa))
+          );
+
+          return titleMatch && artistMatch;
+        });
+      }
+    }
+
+    if (bestMatch) {
+      // Fetch full song details to get more metadata if needed, 
+      // but search result usually has enough for basic metadata.
+      // Let's return what we have from search to be fast.
+      return res.json({
+        success: true,
+        data: bestMatch
+      });
+    } else {
+      return res.status(404).json({
+        success: false,
+        error: 'Song not found after filtering'
+      });
+    }
+
+  } catch (error) {
+    console.error('[FIND] Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/stream/{id}:
+ *   get:
+ *     summary: Get streaming data from Invidious
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Video ID
+ *     responses:
+ *       200:
+ *         description: Raw Invidious API response
+ *       400:
+ *         description: Missing video ID
+ *       404:
+ *         description: No streaming data found
+ */
+router.get('/stream/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required parameter: id is required'
+    });
+  }
+
+  try {
+    // Only fetch from Invidious
+    console.log(`[STREAM] Fetching for ${id} from Invidious...`);
+
+    const invidiousResult = await fetchFromInvidious(id);
+
+    if (invidiousResult) {
+      console.log('[STREAM] Invidious success, returning raw data.');
+      return res.json(invidiousResult);
+    }
+
+    // Failed
+    console.log('[STREAM] Invidious failed.');
+    res.status(404).json({
+      success: false,
+      error: 'No streaming data found from Invidious'
+    });
+  } catch (error) {
+    console.error('Stream endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/search:
+ *   get:
+ *     summary: Search YouTube Music
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search query string
+ *       - in: query
+ *         name: filter
+ *         schema:
+ *           type: string
+ *           enum: [songs, videos, albums, artists, playlists, profiles, podcasts, episodes, community_playlists]
+ *         description: Restrict results to a specific type
+ *       - in: query
+ *         name: continuationToken
+ *         schema:
+ *           type: string
+ *         description: Continuation token for pagination
+ *       - in: query
+ *         name: ignore_spelling
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Whether to ignore spelling corrections
+ *     responses:
+ *       200:
+ *         description: Search results with continuation token
+ *       400:
+ *         description: Missing/invalid params
+ */
+router.get('/search', async (req, res) => {
+  try {
+    const { q: query, filter, continuationToken, ignore_spelling = false } = req.query;
+
+    // FIXED: Don't require query if continuation token is provided
+    if (!query && !continuationToken) {
+      return res.status(400).json({ error: "Missing required query parameter 'q' or 'continuationToken'" });
+    }
+
+    if (filter && !ALLOWED_FILTERS.has(filter)) {
+      return res.status(400).json({
+        error: `Invalid filter. Allowed: ${Array.from(ALLOWED_FILTERS).sort()}`
+      });
+    }
+
+    const ytmusic = req.app.locals.ytmusic;
+
+    // FIXED: Pass query only if it's not a continuation request
+    const searchResults = await ytmusic.search(
+      query || null,
+      filter,
+      continuationToken,
+      ignore_spelling === 'true'
+    );
+
+    res.json({
+      query: query || null,
+      filter,
+      results: searchResults.results,
+      continuationToken: searchResults.continuationToken
+    });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: `Search failed: ${error.message}` });
+  }
+});
+
+/**
+ * @swagger
+ * /api/search/suggestions:
+ *   get:
+ *     summary: Get search suggestions
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Partial query to get suggestions for
+ *       - in: query
+ *         name: music
+ *         schema:
+ *           type: integer
+ *         description: If 1, get suggestions from YouTube Music. If not present or 0, get suggestions from YouTube
+ *     responses:
+ *       200:
+ *         description: Suggestions
+ *       400:
+ *         description: Missing/invalid params
+ */
+router.get('/search/suggestions', async (req, res) => {
+  try {
+    const { q: query, music } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ error: "Missing required query parameter 'q'" });
+    }
+
+    const ytmusic = req.app.locals.ytmusic;
+    const youtubeSearch = req.app.locals.youtubeSearch;
+
+    if (music === '1') {
+      // Get suggestions from YouTube Music
+      let suggestions = await ytmusic.getSearchSuggestions(query);
+      // Fallback to standard YouTube if empty
+      if (!suggestions || suggestions.length === 0) {
+        const fallback = await youtubeSearch.getSuggestions(query);
+        return res.json({ suggestions: fallback, source: 'youtube_music_fallback' });
+      }
+      return res.json({ suggestions, source: 'youtube_music' });
+    } else {
+      // Get suggestions from YouTube
+      const suggestions = await youtubeSearch.getSuggestions(query);
+      return res.json({ suggestions, source: 'youtube' });
+    }
+  } catch (error) {
+    console.error('Suggestions error:', error);
+    res.status(500).json({ error: `Suggestions failed: ${error.message}` });
+  }
+});
+
+/**
+ * @swagger
+ * /api/search/suggestions/debug:
+ *   get:
+ *     summary: Debug endpoint to test YouTube suggestions API directly
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Query to test
+ *     responses:
+ *       200:
+ *         description: Debug suggestions
+ *       400:
+ *         description: Missing query parameter
+ */
+router.get('/search/suggestions/debug', async (req, res) => {
+  try {
+    const { q: query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ error: "Missing required query parameter 'q'" });
+    }
+
+    const youtubeSearch = req.app.locals.youtubeSearch;
+    const suggestions = await youtubeSearch.getSuggestions(query);
+
+    res.json({
+      query,
+      suggestions,
+      count: suggestions.length,
+      source: 'youtube_debug'
+    });
+  } catch (error) {
+    console.error('Debug suggestions error:', error);
+    res.status(500).json({
+      error: `Debug failed: ${error.message}`,
+      query: req.query.q
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/similar:
+ *   get:
+ *     summary: Get similar songs based on Last.fm and YouTube
+ *     parameters:
+ *       - in: query
+ *         name: title
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Song title
+ *       - in: query
+ *         name: artist
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Artist name
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Number of similar tracks to return
+ *     responses:
+ *       200:
+ *         description: List of similar songs from YouTube
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   title:
+ *                     type: string
+ *                   artist:
+ *                     type: string
+ *                   # Add other properties as needed based on getYouTubeSong output
+ *       400:
+ *         description: Missing title or artist parameter
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/similar', async (req, res) => {
+  try {
+    const { title, artist, limit } = req.query;
+    // Use embedded key if env var missing
+    const apiKey = process.env.LASTFM_API_KEY || LASTFM_API_KEY;
+
+    if (!title || !artist) {
+      return res.status(400).json({ error: 'Missing title or artist parameter' });
+    }
+
+    const lastFmData = await getSimilarTracks(String(title), String(artist), apiKey, String(limit || '5'));
+
+    if (lastFmData && lastFmData.error) {
+      return res.status(500).json({ error: lastFmData.error });
+    }
+
+    const youtubeSearchPromises = lastFmData.map(t => getYouTubeSong(`${t.title} ${t.artist}`));
+    const allYoutubeResults = await Promise.all(youtubeSearchPromises);
+    const matched = allYoutubeResults.filter(r => r && r.id);
+
+    return res.status(200).json(matched);
+  } catch (error) {
+    console.error('Error in /api/similar:', error);
+    return res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
+// Helper to send consistent JSON response with cache headers
+function sendJson(res, body, cacheControl = 'private') {
+  console.log(`[SENDJSON] Sending response:`, {
+    status: 200,
+    cacheControl,
+    bodyLength: Array.isArray(body) ? body.length : 'not-array',
+    timestamp: new Date().toISOString()
+  });
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', cacheControl);
+  res.status(200).send(JSON.stringify(body));
+}
+
+function invalidRequest(res, message = 'Invalid request') {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'private');
+  res.status(400).send(JSON.stringify({
+    error: true,
+    message
+  }));
+}
+
+function authFailure(res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'private');
+  res.status(401).send(JSON.stringify({
+    error: true,
+    message: 'Authentication failed'
+  }));
+}
+
+/**
+ * @swagger
+ * /api/feed:
+ *   get:
+ *     summary: Get authenticated user feed
+ *     parameters:
+ *       - in: query
+ *         name: authToken
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Session auth token
+ *       - in: query
+ *         name: preview
+ *         schema:
+ *           type: integer
+ *           enum: [0, 1]
+ *         description: If 1, returns a limited preview
+ *     responses:
+ *       200:
+ *         description: User feed items
+ *       400:
+ *         description: Missing auth token
+ *       401:
+ *         description: Authentication failed
+ */
+router.get('/feed', (req, res) => {
+  const authToken = req.query.authToken;
+  const preview = req.query.preview === '1' || req.query.preview === 1;
+
+  if (!authToken || String(authToken).trim() === '') {
+    return invalidRequest(res, 'session is a required parameter');
+  }
+
+  const channelIds = sessionToChannelIds.get(String(authToken));
+  if (!channelIds || channelIds.size === 0) {
+    return authFailure(res);
+  }
+
+  (async () => {
+    try {
+      // For preview mode, fetch more per channel, then globally limit to top 5 across all channels
+      const perChannelLimit = preview ? undefined : undefined;
+      const promises = Array.from(channelIds, id => fetchChannelItems(id, perChannelLimit));
+      const settled = await Promise.allSettled(promises);
+      let results = settled.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+      // Filter out shorts if any flag present
+      results = results.filter(item => !item.isShort);
+      // Sort by newest first, then by highest views
+      results.sort((a, b) => {
+        if (b.uploaded !== a.uploaded) return b.uploaded - a.uploaded;
+        const av = Number(a.views || 0);
+        const bv = Number(b.views || 0);
+        return bv - av;
+      });
+      // If preview, return only the top 5 across all channels
+      if (preview) {
+        results = results.slice(0, 5);
+      }
+      return sendJson(res, results, 'private');
+    } catch (e) {
+      return authFailure(res);
+    }
+  })();
+});
+
+/**
+ * @swagger
+ * /api/feed/unauthenticated:
+ *   get:
+ *     summary: Get feed for unauthenticated users based on provided channels
+ *     parameters:
+ *       - in: query
+ *         name: channels
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of channel IDs
+ *       - in: query
+ *         name: preview
+ *         schema:
+ *           type: integer
+ *           enum: [0, 1]
+ *         description: If 1, returns a limited preview
+ *     responses:
+ *       200:
+ *         description: Feed items
+ *       400:
+ *         description: No valid channel IDs provided
+ */
+router.get('/feed/unauthenticated', (req, res) => {
+  const channelsParam = req.query.channels;
+  const preview = req.query.preview === '1' || req.query.preview === 1;
+
+  if (!channelsParam || String(channelsParam).trim() === '') {
+    return invalidRequest(res, 'No valid channel IDs provided');
+  }
+
+  const channelIds = String(channelsParam)
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (channelIds.length === 0) {
+    return sendJson(res, [], 'public, s-maxage=120');
+  }
+
+  (async () => {
+    try {
+      // YouTube.js removed - using direct Browse API
+      const perChannelLimit = preview ? 5 : undefined;
+      const promises = channelIds.map(id => fetchChannelItems(id, perChannelLimit));
+      const settled = await Promise.allSettled(promises);
+      let results = settled.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+      // RSS fallback removed - using only Browse API
+
+      results.sort((a, b) => b.uploaded - a.uploaded);
+      return sendJson(res, results, 'public, s-maxage=120');
+    } catch (e) {
+      return sendJson(res, [], 'public, s-maxage=120');
+    }
+  })();
+});
+
+// ... existing imports
+
+
+// ... existing code ...
+
+/**
+ * @swagger
+ * /api/album/{id}:
+ *   get:
+ *     summary: Fetch album data from YouTube Music
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Album ID
+ *     responses:
+ *       200:
+ *         description: Album data
+ *       400:
+ *         description: Album ID is required
+ *       500:
+ *         description: Failed to fetch album data
+ */
+router.get('/album/:id', async (req, res) => {
+  const albumId = req.params.id;
+
+  console.log(`[ALBUM] Fetching album ${albumId}`);
+
+  if (!albumId || String(albumId).trim() === '') {
+    return res.status(400).json({ error: 'Album ID is required' });
+  }
+
+  try {
+    const albumData = await youtubeiClient.getAlbum(albumId);
+    return res.json(albumData);
+  } catch (error) {
+    console.error(`[ALBUM] Error fetching album ${albumId}:`, error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch album data',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/playlist/{id}:
+ *   get:
+ *     summary: Fetch playlist data from YouTube Music
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Playlist ID
+ *     responses:
+ *       200:
+ *         description: Playlist data
+ *       400:
+ *         description: Playlist ID is required
+ *       500:
+ *         description: Failed to fetch playlist data
+ */
+router.get('/playlist/:id', async (req, res) => {
+  const playlistId = req.params.id;
+
+  console.log(`[PLAYLIST] Fetching playlist ${playlistId}`);
+
+  if (!playlistId || String(playlistId).trim() === '') {
+    return res.status(400).json({ error: 'Playlist ID is required' });
+  }
+
+  try {
+    const playlistData = await youtubeiClient.getPlaylist(playlistId);
+    return res.json(playlistData);
+  } catch (error) {
+    console.error(`[PLAYLIST] Error fetching playlist ${playlistId}:`, error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch playlist data',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/feed/channels={channels}:
+ *   get:
+ *     summary: Get feed for specific channels (path parameter)
+ *     parameters:
+ *       - in: path
+ *         name: channels
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of channel IDs
+ *       - in: query
+ *         name: preview
+ *         schema:
+ *           type: integer
+ *           enum: [0, 1]
+ *         description: If 1, returns a limited preview
+ *     responses:
+ *       200:
+ *         description: Feed items
+ *       400:
+ *         description: No valid channel IDs provided
+ */
+router.get('/feed/channels=:channels', (req, res) => {
+  // ... existing code ...
+  console.log(`[ROUTE] /feed/channels=:channels route hit!`);
+  const channelsParam = req.params.channels;
+  const preview = req.query.preview === '1' || req.query.preview === 1;
+
+  console.log(`[FEED/CHANNELS] Request received:`, {
+    channelsParam,
+    preview,
+    userAgent: req.get('User-Agent'),
+    ifNoneMatch: req.get('If-None-Match'),
+    ifModifiedSince: req.get('If-Modified-Since'),
+    cacheControl: req.get('Cache-Control'),
+    timestamp: new Date().toISOString()
+  });
+
+  if (!channelsParam || String(channelsParam).trim() === '') {
+    console.log(`[FEED/CHANNELS] Invalid request - no channels provided`);
+    return invalidRequest(res, 'No valid channel IDs provided');
+  }
+
+  const channelIds = String(channelsParam)
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(id => id.split('&')[0]); // Remove query parameters from channel IDs
+
+  console.log(`[FEED/CHANNELS] Parsed channel IDs:`, channelIds);
+
+  if (channelIds.length === 0) {
+    console.log(`[FEED/CHANNELS] No valid channel IDs after parsing`);
+    return sendJson(res, [], 'public, s-maxage=120');
+  }
+
+  (async () => {
+    try {
+      console.log(`[FEED/CHANNELS] Starting fetch for ${channelIds.length} channels, preview=${preview}`);
+      const startTime = Date.now();
+
+      // YouTube.js removed - using direct Browse API
+      const perChannelLimit = preview ? 5 : undefined;
+      const promises = channelIds.map(id => fetchChannelItems(id, perChannelLimit));
+      const settled = await Promise.allSettled(promises);
+      let results = settled.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+      // RSS fallback removed - using only Browse API
+
+      console.log(`[FEED/CHANNELS] Fetch completed in ${Date.now() - startTime}ms, got ${results.length} items`);
+
+      // Filter out shorts and sort by upload date
+      results = results
+        .filter(item => !item.isShort) // Filter out shorts
+        .sort((a, b) => b.uploaded - a.uploaded); // Sort by upload date (newest first)
+
+      console.log(`[FEED/CHANNELS] After filtering shorts: ${results.length} items`);
+
+      // If preview mode, limit to 5 latest videos per channel
+      if (preview) {
+        const channelCounts = new Map();
+        results = results.filter(item => {
+          const channelId = item.authorId;
+          const count = channelCounts.get(channelId) || 0;
+          if (count < 5) {
+            channelCounts.set(channelId, count + 1);
+            return true;
+          }
+          return false;
+        });
+        console.log(`[FEED/CHANNELS] After preview limit (5 per channel): ${results.length} items`);
+      }
+
+      console.log(`[FEED/CHANNELS] Sending response with ${results.length} items`);
+      return sendJson(res, results, 'public, s-maxage=120');
+    } catch (e) {
+      console.error(`[FEED/CHANNELS] Error occurred:`, e);
+      return sendJson(res, [], 'public, s-maxage=120');
+    }
+  })();
+});
+
+/**
+ * @swagger
+ * /api/trending:
+ *   get:
+ *     summary: Get trending songs, videos, and playlists
+ *     responses:
+ *       200:
+ *         description: Trending content
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     songs:
+ *                       type: array
+ *                     videos:
+ *                       type: array
+ *                     playlists:
+ *                       type: array
+ *       500:
+ *         description: Failed to fetch trending content
+ */
+router.get('/trending', async (req, res) => {
+  try {
+    const trending = await youtubeiClient.getTrending();
+    res.json({
+      success: true,
+      data: trending
+    });
+  } catch (error) {
+    console.error('Trending API error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch trending content'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/related/{id}:
+ *   get:
+ *     summary: Get related videos for a given video ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Video ID
+ *     responses:
+ *       200:
+ *         description: Related videos (excluding shorts)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       videoId:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       artist:
+ *                         type: string
+ *                       thumbnail:
+ *                         type: string
+ *                       duration:
+ *                         type: string
+ *                       duration_seconds:
+ *                         type: number
+ */
+router.get('/related/:id', async (req, res) => {
+  try {
+    const videoId = req.params.id;
+
+    if (!videoId || String(videoId).trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Video ID is required'
+      });
+    }
+
+    const related = await youtubeiClient.getRelated(videoId);
+    res.json({
+      success: true,
+      data: related
+    });
+  } catch (error) {
+    console.error('Related videos API error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch related videos'
+    });
+  }
+});
+
+module.exports = router;
