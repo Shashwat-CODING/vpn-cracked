@@ -1,7 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
 require('dotenv').config();
 
 // Import route modules
@@ -19,9 +17,6 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Middleware
-app.use(helmet());
-app.use(morgan('combined'));
-
 // Disable ETag generation to prevent 304 responses
 app.set('etag', false);
 
