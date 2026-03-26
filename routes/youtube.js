@@ -192,4 +192,115 @@ router.get('/yt_playlists', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/related:
+ *   get:
+ *     summary: Get related songs based on a video ID
+ *     parameters:
+ *       - in: query
+ *         name: videoId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Video ID to get related songs for
+ *     responses:
+ *       200:
+ *         description: List of related songs
+ *       400:
+ *         description: Missing videoId
+ */
+router.get('/related', async (req, res) => {
+  const { videoId } = req.query;
+
+  if (!videoId) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required query parameter: 'videoId'",
+      example: "GET /api/related?videoId=dQw4w9WgXcQ"
+    });
+  }
+
+  try {
+    const ytmusic = req.app.locals.ytmusic;
+    const songs = await getRelatedSongs(videoId, ytmusic);
+    res.json({
+      success: true,
+      videoId,
+      count: songs.length,
+      songs
+    });
+  } catch (error) {
+    console.error('Related error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: 'Failed to fetch related songs from YouTube Music'
+    });
+  }
+});
+
+async function getRelatedSongs(videoId, ytmusic) {
+  // Use the internal ytmusic client for authenticated request
+  const body = {
+    videoId,
+    playlistId: `RDAMVM${videoId}`,
+    isAudioOnly: true
+  };
+
+  const data = await ytmusic._makeRequest('next', body);
+  return parseRelatedSongs(data, videoId);
+}
+
+function parseRelatedSongs(data, currentVideoId) {
+  const songs = [];
+
+  try {
+    const tabs = data?.contents?.singleColumnMusicWatchNextResultsRenderer
+      ?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs;
+
+    if (!Array.isArray(tabs)) return songs;
+
+    for (const tab of tabs) {
+      const contents = tab?.tabRenderer?.content?.musicQueueRenderer
+        ?.content?.playlistPanelRenderer?.contents;
+
+      if (!Array.isArray(contents)) continue;
+
+      for (const item of contents) {
+        const panel = item?.playlistPanelVideoRenderer;
+        if (!panel) continue;
+
+        let thumbnailUrl = panel.thumbnail?.thumbnails?.[0]?.url || '';
+        if (thumbnailUrl) {
+          thumbnailUrl = thumbnailUrl.replace(/=w\d+-h\d+(-l\d+)?(-rj)?$/, '=w500-h500');
+        }
+
+        const song = {
+          videoId: panel.videoId || '',
+          title: panel.title?.runs?.[0]?.text || 'Unknown Title',
+          artist: panel.longBylineText?.runs?.[0]?.text
+            || panel.shortBylineText?.runs?.[0]?.text
+            || 'Unknown Artist',
+          thumbnail: thumbnailUrl,
+          duration: panel.lengthText?.runs?.[0]?.text
+            || panel.lengthText?.simpleText
+            || null
+        };
+
+        // Put the requested song first, rest follow in order
+        if (panel.videoId === currentVideoId) {
+          songs.unshift(song);
+        } else {
+          songs.push(song);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error parsing related songs:', err);
+  }
+
+  return songs;
+}
+
 module.exports = router;
