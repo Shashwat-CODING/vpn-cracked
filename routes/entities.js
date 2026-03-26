@@ -160,29 +160,13 @@ router.get('/artist/:artistId', async (req, res) => {
     const { artistId } = req.params;
     const { country = 'US' } = req.query;
 
-    const YOUTUBE_MUSIC_API_URL = 'https://summer-darkness-1435.bob17040246.workers.dev/youtubei/v1/browse?prettyPrint=false';
-
+    const ytmusic = req.app.locals.ytmusic;
     const body = {
-      browseId: artistId,
-      context: {
-        client: {
-          clientName: 'WEB_REMIX',
-          clientVersion: '1.20250915.03.00',
-          gl: country
-        }
-      }
+      browseId: artistId
     };
 
-    const response = await axios.post(YOUTUBE_MUSIC_API_URL, body, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 15000
-    });
-
-    if (response.status !== 200) {
-      return res.status(500).json({ error: `HTTP error: ${response.status}` });
-    }
-
-    const data = response.data;
+    // Use internal ytmusic client instead of external proxy
+    const data = await ytmusic._makeRequest('browse', body);
 
     const header = data?.header?.musicImmersiveHeaderRenderer || data?.header?.musicVisualHeaderRenderer;
     const artistHeader = header?.title?.runs?.[0]?.text;
