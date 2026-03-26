@@ -93,11 +93,10 @@ app.use('*', (req, res) => {
 });
 
 // Start server locally; on Vercel we just export the app
-if (!process.env.VERCEL) {
+if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 ytify-backend server running on port ${PORT}`);
     console.log(`🌐 Frontend Demo redirects from http://localhost:${PORT}/ to https://shashwat-coding.github.io/ytify-backend`);
-    console.log(`📚 API Documentation available at http://localhost:${PORT}/api-docs`);
     console.log(`🏥 Health check available at http://localhost:${PORT}/health`);
   });
 }
