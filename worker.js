@@ -6,6 +6,10 @@ import { PassThrough } from 'node:stream';
 globalThis.Buffer = Buffer;
 globalThis.process = process;
 
+// Fix for "Illegal invocation" error caused by Axios calling fetch without correct context
+const boundFetch = globalThis.fetch.bind(globalThis);
+globalThis.fetch = boundFetch;
+
 /**
  * Robust adapter to run an Express app on Cloudflare Workers.
  * Replicates the routing rules from vercel.json.
