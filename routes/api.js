@@ -2,8 +2,8 @@ const express = require('express');
 
 const router = express.Router();
 const { getSimilarTracks, LASTFM_API_KEY } = require('../lib/lastfm_api');
-const { getYouTubeSong } = require('../lib/get_youtube_song');
 const youtubeiClient = require('../lib/youtubei-client');
+const getYouTubeSong = youtubeiClient.getYouTubeSong.bind(youtubeiClient);
 const axios = require('axios');
 
 const ALLOWED_FILTERS = new Set([

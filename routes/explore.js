@@ -84,9 +84,10 @@ router.get('/moods', async (req, res) => {
 router.get('/moods/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
+    const { params } = req.query;
     const ytmusic = req.app.locals.ytmusic;
     
-    const data = await ytmusic.getMoodPlaylists(categoryId);
+    const data = await ytmusic.getMoodPlaylists(categoryId, params);
     res.json(data);
   } catch (error) {
     console.error('Mood playlists error:', error);
