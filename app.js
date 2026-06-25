@@ -10,7 +10,8 @@ const youtubeRoutes = require('./routes/youtube');
 const jiosaavnRoutes = require('./routes/jiosaavn');
 
 // Import libraries
-const youtubeiClient = require('./lib/youtubei-client');
+const YTMusic = require('./lib/ytmusicapi');
+const YouTubeSearch = require('./lib/youtube-search');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -49,12 +50,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize clients (youtubeiClient initializes lazily on first call)
+// Initialize clients
+const ytmusic = new YTMusic();
+const youtubeSearch = new YouTubeSearch();
 
 // Make clients available to routes
-app.locals.youtubeiClient = youtubeiClient;
-app.locals.ytmusic = youtubeiClient; // Provide fallback naming for compatibility
-app.locals.youtubeSearch = youtubeiClient; // Provide fallback naming for compatibility
+app.locals.ytmusic = ytmusic;
+app.locals.youtubeSearch = youtubeSearch;
 
 // Root endpoint - Redirect to Frontend Demo
 app.get('/', (req, res) => {

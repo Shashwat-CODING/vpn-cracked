@@ -1,5 +1,4 @@
-# wrangler.toml
-name = 'muzo-api'
+name = "ytx"
 main = "worker.js"
 compatibility_date = "2024-11-01"
 compatibility_flags = [ "nodejs_compat" ]
