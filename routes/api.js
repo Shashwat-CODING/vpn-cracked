@@ -21,6 +21,7 @@ const ALLOWED_FILTERS = new Set([
 // Minimal in-memory demo: maps session tokens to subscribed channel IDs.
 // Example: sessionToChannelIds.set('demo', new Set(['UC-Example']));
 const sessionToChannelIds = new Map();
+sessionToChannelIds.set('demo', new Set(['UCJn58GeZ4nS8W33SPhWdO1Q']));
 
 // YouTube.js removed - using direct Browse API instead
 
@@ -380,17 +381,36 @@ function parseVideoFromBrowse(video, channelId, channelName) {
 
 
 async function fetchFromInvidious(videoId) {
-  // Hardcoded instances as per request
-  const invidiousInstances = [
+  let invidiousInstances = [
     "https://inv-veltrix.zeabur.app",
     "https://inv-veltrix-2.zeabur.app"
   ];
 
-  // Try instances one by one until we find a working one
-  for (const instance of invidiousInstances) {
+  // Try to fetch current active instances list dynamically
+  try {
+    const listRes = await axios.get('https://api.invidious.io/instances.json', { timeout: 3000 });
+    if (listRes.data && Array.isArray(listRes.data)) {
+      const activeUrls = listRes.data
+        .filter(item => item[1] && item[1].type === 'https' && item[1].api === true)
+        .map(item => item[1].uri)
+        .filter(Boolean);
+      if (activeUrls.length > 0) {
+        invidiousInstances = [...invidiousInstances, ...activeUrls];
+      }
+    }
+  } catch (err) {
+    console.error('[STREAM] Failed to fetch dynamic Invidious instances:', err.message);
+  }
+
+  // De-duplicate instances
+  invidiousInstances = Array.from(new Set(invidiousInstances));
+
+  // Try instances one by one (limit to first 6 to keep it fast)
+  for (const instance of invidiousInstances.slice(0, 6)) {
     try {
+      console.log(`[STREAM] Trying Invidious instance: ${instance}`);
       const response = await axios.get(`${instance}/api/v1/videos/${videoId}`, {
-        timeout: 10000
+        timeout: 4000
       });
 
       if (response.data) {
