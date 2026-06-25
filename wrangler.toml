@@ -7,7 +7,3 @@ compatibility_flags = [ "nodejs_compat" ]
 [vars]
 NODE_ENV = "production"
 VERCEL = "true"
-
-[placement]
-mode = "Region"
-region = "aws:ap-south-1"
