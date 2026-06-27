@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:8787';
+const BASE_URL = 'http://127.0.0.1:8787';
 
 async function testEndpoints() {
     console.log('--- Starting Cloudflare Worker Endpoint Verification ---');
@@ -9,8 +9,12 @@ async function testEndpoints() {
         { name: 'Root Redirect', url: '/', expectRedirect: true },
         { name: 'Health Check', url: '/health' },
         { name: 'API Search', url: '/api/search?q=test' },
-        { name: 'Vercel Alias: JioSaavn', url: '/jiosaavn/search?title=test&artist=test' },
-        { name: 'Vercel Alias: Entities', url: '/entities/songs/test' },
+        { name: 'Vercel Alias: JioSaavn', url: '/jiosaavn/search?title=Kabira&artist=Arijit%20Singh' },
+        { name: 'Vercel Alias: Entities (Song)', url: '/entities/songs/VKjRiOTSgG8' },
+        { name: 'Vercel Alias: Entities (Album)', url: '/entities/albums/MPREb_1Aoz4jxVKot' },
+        { name: 'Vercel Alias: Entities (Playlist)', url: '/entities/playlists/OLAK5uy_kB0TlQ4WJlkPGYvROL4FbPvoM2I_ikFT0' },
+        { name: 'Trending Charts', url: '/api/trending' },
+        { name: 'Related Videos', url: '/api/related/VKjRiOTSgG8' },
     ];
 
     for (const endpoint of endpoints) {

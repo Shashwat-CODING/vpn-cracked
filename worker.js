@@ -22,13 +22,14 @@ export default {
         let pathname = url.pathname;
 
         // --- Replicate Vercel Routing logic from vercel.json ---
-        // Vercel routes for /entities, /explore, /youtube, /jiosaavn all go to /api/app
-        // In the Express app, these are mounted under '/api'. 
-        // Prepend '/api' if missing for these paths to ensure alignment.
-        const vercelRedirects = ['/entities', '/explore', '/youtube', '/jiosaavn'];
-        if (vercelRedirects.some(path => pathname.startsWith(path))) {
-            pathname = '/api' + pathname;
-        }
+        if (pathname === '/entities') pathname = '/api';
+        else if (pathname.startsWith('/entities/')) pathname = '/api/' + pathname.slice(10);
+        else if (pathname === '/explore') pathname = '/api';
+        else if (pathname.startsWith('/explore/')) pathname = '/api/' + pathname.slice(9);
+        else if (pathname === '/youtube') pathname = '/api';
+        else if (pathname.startsWith('/youtube/')) pathname = '/api/' + pathname.slice(9);
+        else if (pathname === '/jiosaavn') pathname = '/api/jiosaavn';
+        else if (pathname.startsWith('/jiosaavn/')) pathname = '/api/jiosaavn/' + pathname.slice(10);
 
         // Handle root redirect (if not covered by Express)
         if (pathname === '/') {
