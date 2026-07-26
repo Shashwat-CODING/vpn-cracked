@@ -13,6 +13,8 @@ const jiosaavnRoutes = require('./routes/jiosaavn');
 const YTMusic = require('./lib/ytmusicapi');
 const YouTubeSearch = require('./lib/youtube-search');
 
+const path = require('path');
+
 const app = express();
 const PORT = process.env.PORT || 8000;
 
@@ -49,6 +51,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Initialize clients
 const ytmusic = new YTMusic();
@@ -58,9 +61,9 @@ const youtubeSearch = new YouTubeSearch();
 app.locals.ytmusic = ytmusic;
 app.locals.youtubeSearch = youtubeSearch;
 
-// Root endpoint - Redirect to Frontend Demo
+// Root endpoint - Serve static frontend
 app.get('/', (req, res) => {
-  res.redirect('https://shashwat-coding.github.io/ytify-backend');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Health check endpoint

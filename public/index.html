@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="lumen">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Muzo — High-performance Music & Streaming API.</title>
+  <meta name="description" content="Muzo is a high-performance serverless API wrapping YouTube Music, JioSaavn, and YouTube Search. P50 latency at 28 ms." />
+  <meta name="theme-color" content="#0d1018" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* Hallmark · macrostructure: Interactive API Workbench · H1 hero knobs: apparatus=filament-chamber, italic-pivot=stream
+     * theme: Lumen (catalog) · drop: Night Foundry · paper: oklch(13% 0.014 265) · accent: oklch(76% 0.17 50) + oklch(68% 0.16 18)
+     * display: Instrument Serif 400 (italic pivot) · body: Geist Sans · labels: JetBrains Mono all-caps
+     * axes: dark / classical-serif / warm-brass
+     * nav: N5 floating pill · footer: Ft5 statement
+     * brief: "A music and streaming api documentation and playground — Muzo."
+     * v1.1.0
+     */
+
+    :root, [data-theme="lumen"] {
+      color-scheme: dark;
+
+      /* NIGHT FOUNDRY palette — cool-violet paper, molten-brass accent */
+      --color-paper:      oklch(13% 0.014 265);
+      --color-paper-2:    oklch(17% 0.016 265);
+      --color-paper-3:    oklch(22% 0.018 263);
+      --color-rule:       oklch(30% 0.018 265);
+      --color-rule-2:     oklch(42% 0.020 263);
+      --color-muted:      oklch(60% 0.016 263);
+      --color-neutral:    oklch(72% 0.014 263);
+      --color-ink-2:      oklch(82% 0.010 262);
+      --color-ink:        oklch(96% 0.006 262);
+      --color-accent:     oklch(76% 0.17 50);
+      --color-accent-2:   oklch(68% 0.16 18);
+      --color-accent-ink: oklch(13% 0.014 265);
+      --color-focus:      oklch(76% 0.17 50);
+      --color-glow:       oklch(80% 0.16 50 / 0.42);
+      --color-glow-2:     oklch(80% 0.16 50 / 0.12);
+      --color-paper-emit: oklch(76% 0.17 50 / 0.05);
+      --rule-blueprint:   oklch(96% 0.006 262 / 0.04);
+
+      /* Type */
+      --font-display: "Instrument Serif", "Tiempos Headline", ui-serif, Georgia, serif;
+      --font-body:    "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+      --font-label:   "JetBrains Mono", "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      --font-mono:    "JetBrains Mono", "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+      --text-xs:        0.75rem;
+      --text-sm:        0.8125rem;
+      --text-base:      1rem;
+      --text-md:        1.0625rem;
+      --text-lg:        1.25rem;
+      --text-xl:        1.5rem;
+      --text-2xl:       2rem;
+      --text-3xl:       2.5rem;
+      --text-display:   clamp(3rem, 6.5vw + 0.75rem, 6.5rem);
+      --text-display-s: clamp(2.25rem, 3.75vw + 1rem, 3.75rem);
+
+      --tracking-display: -0.032em;
+      --tracking-tight:   -0.014em;
+      --tracking-normal:   0;
+      --tracking-label:    0.10em;
+      --tracking-micro:    0.16em;
+
+      --lh-tight:   1.02;
+      --lh-snug:    1.18;
+      --lh-normal:  1.55;
+      --lh-relaxed: 1.7;
+
+      --space-2xs: 0.25rem;
+      --space-xs:  0.5rem;
+      --space-sm:  0.75rem;
+      --space-md:  1rem;
+      --space-lg:  1.5rem;
+      --space-xl:  2.5rem;
+      --space-2xl: 4rem;
+      --space-3xl: 6.5rem;
+      --space-4xl: 10rem;
+
+      --section-gap:      6.5rem;
+      --section-head-gap: 1.75rem;
+
+      --page-max:    80rem;
+      --page-gutter: clamp(1.25rem, 4vw, 3rem);
+      --measure:     60ch;
+
+      --radius-card:  10px;
+      --radius-pill:  999px;
+      --radius-input: 8px;
+      --rule-card:    1px;
+      --shadow-card:  0 24px 60px -28px oklch(0% 0 0 / 0.55),
+                      0 1px 2px oklch(0% 0 0 / 0.4);
+
+      --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-soft:    cubic-bezier(0.22, 0.61, 0.36, 1);
+      --ease-in:      cubic-bezier(0.7, 0, 0.84, 0);
+      --dur-micro:    120ms;
+      --dur-short:    220ms;
+      --dur-long:     420ms;
+      --dur-headline: 1100ms;
+      --dur-pulse:    4s;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; }
+    html { overflow-x: clip; scroll-behavior: smooth; }
+    body {
+      background: var(--color-paper);
+      color: var(--color-ink-2);
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: var(--lh-normal);
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      text-transform: lowercase;
+    }
+
+    pre, code, .code__path, .code__sha { text-transform: none; }
+    img, svg, video { display: block; max-width: 100%; }
+    ::selection { background: oklch(76% 0.17 50 / 0.32); color: var(--color-ink); }
+    a { color: inherit; text-decoration: none; }
+    a:focus-visible { outline: 1.5px solid var(--color-focus); outline-offset: 3px; border-radius: 2px; }
+    button { font: inherit; }
+    button:focus-visible { outline: 1.5px solid var(--color-focus); outline-offset: 2px; }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+
+    .eyebrow {
+      font-family: var(--font-label);
+      font-size: 11px;
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-ink);
+      opacity: 0.55;
+      margin: 0 0 var(--space-md);
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.4em;
+    }
+    .eyebrow .ord { color: var(--color-accent); opacity: 1; }
+    .eyebrow .dot-mid { color: var(--color-rule-2); opacity: 1; }
+
+    em {
+      font-style: normal;
+      font-weight: 400;
+      color: var(--color-accent-2);
+      position: relative;
+      white-space: nowrap;
+    }
+    em::after {
+      content: "";
+      position: absolute;
+      left: 0.05em; right: 0.05em; bottom: 0.04em;
+      height: 1px;
+      background: var(--color-accent-2);
+      transform-origin: left;
+      animation: pivot-underline 320ms var(--ease-soft) 900ms backwards;
+    }
+    @keyframes pivot-underline {
+      from { transform: scaleX(0); }
+      to   { transform: scaleX(1); }
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 0.5em;
+      padding: 0.7rem 1.2rem;
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      border-radius: var(--radius-pill);
+      border: 1px solid transparent;
+      transition: transform 220ms var(--ease-soft), background-color 220ms, border-color 220ms, color 220ms;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn--accent {
+      background: var(--color-accent);
+      color: var(--color-accent-ink);
+      font-weight: 500;
+    }
+    .btn--accent:hover { transform: translateY(-1px); background: oklch(82% 0.18 50); }
+    .btn--ghost {
+      background: transparent;
+      color: var(--color-ink);
+      border-color: var(--color-rule-2);
+    }
+    .btn--ghost:hover { transform: translateY(-1px); border-color: var(--color-ink); }
+    .btn--block { width: 100%; }
+
+    /* ─── Nav ─── */
+    .nav {
+      position: fixed;
+      top: 1.25rem;
+      left: 0; right: 0;
+      display: flex; justify-content: center;
+      z-index: 500;
+      pointer-events: none;
+    }
+    .nav__pill {
+      pointer-events: auto;
+      display: flex; align-items: center;
+      gap: clamp(1rem, 3vw, 2.5rem);
+      padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+      background: oklch(17% 0.016 265 / 0.72);
+      backdrop-filter: blur(22px) saturate(140%);
+      -webkit-backdrop-filter: blur(22px) saturate(140%);
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-pill);
+      max-width: calc(100vw - 2.5rem);
+      box-shadow: 0 12px 32px -16px oklch(0% 0 0 / 0.5);
+    }
+    .nav__wordmark {
+      display: inline-flex; align-items: center; gap: 0.55em;
+      font-family: var(--font-display);
+      font-size: 1.3125rem;
+      font-weight: 400;
+      color: var(--color-ink);
+      letter-spacing: -0.018em;
+    }
+    .nav__mark {
+      position: relative;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      box-shadow: 0 0 14px var(--color-glow);
+    }
+    .nav__mark::after {
+      content: ""; position: absolute; inset: -3px;
+      border: 1px solid var(--color-accent);
+      opacity: 0.4;
+      border-radius: 50%;
+    }
+    .nav__links { display: flex; gap: 1.5rem; }
+    .nav__links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-ink-2);
+      transition: color 180ms;
+    }
+    .nav__links a:hover { color: var(--color-ink); }
+
+    @media (max-width: 720px) {
+      .nav__links { display: none; }
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      position: relative;
+      overflow: clip;
+      isolation: isolate;
+      padding-block: clamp(8rem, 14vh, 11rem) clamp(3.5rem, 7vh, 5.5rem);
+      background: var(--color-paper);
+    }
+    .hero__grid {
+      position: absolute; inset: 0; z-index: -2;
+      background-image:
+        linear-gradient(var(--rule-blueprint) 1px, transparent 1px),
+        linear-gradient(90deg, var(--rule-blueprint) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(60% 80% at 50% 30%, oklch(0% 0 0) 0%, transparent 100%);
+      -webkit-mask-image: radial-gradient(60% 80% at 50% 30%, oklch(0% 0 0) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    .hero__emit {
+      position: absolute; inset: 0; z-index: -1;
+      background: radial-gradient(45% 38% at 78% 36%, var(--color-paper-emit) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero__inner {
+      max-width: var(--page-max);
+      margin-inline: auto;
+      padding-inline: var(--page-gutter);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: clamp(3rem, 7vh, 4.5rem);
+      align-items: center;
+    }
+    @media (min-width: 980px) {
+      .hero__inner { grid-template-columns: 1.2fr 1fr; gap: 3.5rem; }
+    }
+    .hero__title {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: var(--text-display);
+      line-height: var(--lh-tight);
+      letter-spacing: var(--tracking-display);
+      color: var(--color-ink);
+      margin: 0 0 var(--space-xl);
+      max-width: 14ch;
+      text-wrap: balance;
+    }
+    .hero__lede {
+      font-size: var(--text-md);
+      line-height: var(--lh-normal);
+      color: var(--color-ink-2);
+      max-width: 42ch;
+      margin: 0 0 var(--space-xl);
+    }
+    .hero__cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: var(--space-2xl); }
+
+    .hero__spec {
+      margin: 0;
+      padding-top: var(--space-lg);
+      border-top: 1px solid var(--color-rule);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.65rem;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.04em;
+      color: var(--color-muted);
+    }
+    .hero__spec-pair { display: grid; grid-template-columns: 6.5rem 1fr; gap: 1rem; align-items: baseline; }
+    .hero__spec-pair dt { text-transform: uppercase; letter-spacing: 0.10em; color: var(--color-muted); opacity: 0.7; }
+
+    /* Apparatus */
+    .apparatus { margin: 0; position: relative; display: grid; place-items: center; min-height: clamp(360px, 48vw, 520px); }
+    .chamber {
+      position: relative;
+      width: clamp(140px, 16vw, 200px);
+      height: clamp(340px, 40vw, 460px);
+      border-radius: 999px;
+      background:
+        radial-gradient(ellipse 130% 60% at 50% 0%, oklch(22% 0.018 263) 0%, transparent 70%),
+        radial-gradient(ellipse 130% 60% at 50% 100%, oklch(22% 0.018 263) 0%, transparent 70%),
+        linear-gradient(180deg, oklch(15% 0.014 265) 0%, oklch(17% 0.016 265) 50%, oklch(15% 0.014 265) 100%);
+      border: 1px solid var(--color-rule-2);
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow: 0 30px 80px -32px oklch(0% 0 0 / 0.6);
+    }
+    .chamber__cap {
+      position: absolute; left: 0; right: 0; height: 14px;
+      background: linear-gradient(180deg, oklch(28% 0.020 263) 0%, oklch(20% 0.018 265) 100%);
+      border-block: 1px solid var(--color-rule-2);
+      z-index: 4;
+    }
+    .chamber__cap--top { top: -1px; }
+    .chamber__cap--bottom { bottom: -1px; transform: scaleY(-1); }
+    .chamber__electrode {
+      position: absolute; left: -6%; right: -6%; top: var(--y); height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--color-rule-2) 18%, var(--color-rule-2) 82%, transparent 100%);
+      z-index: 2;
+    }
+    .chamber__halo {
+      position: absolute; inset: 0 10%;
+      background: radial-gradient(circle at 50% 50%, var(--color-glow) 0%, var(--color-glow-2) 35%, transparent 70%);
+      z-index: 1; filter: blur(8px);
+    }
+    .chamber__filament {
+      position: absolute; top: 8%; bottom: 8%; left: 50%; width: 2px; margin-left: -1px;
+      background: linear-gradient(180deg, oklch(96% 0.04 50) 0%, oklch(86% 0.15 50) 50%, oklch(96% 0.04 50) 100%);
+      border-radius: 1px;
+      box-shadow: 0 0 14px 3px oklch(86% 0.16 50 / 0.75), 0 0 36px 8px var(--color-glow);
+      z-index: 3;
+      animation: filament-pulse var(--dur-pulse) ease-in-out infinite;
+    }
+    .chamber__stencil {
+      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--color-muted); z-index: 5; padding: 2px 6px; border: 1px solid var(--color-rule-2);
+      background: oklch(13% 0.014 265 / 0.85); border-radius: 2px;
+    }
+    .callouts { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; pointer-events: none; }
+    .callout {
+      position: absolute; top: var(--y); font-family: var(--font-mono); font-size: 10.5px;
+      letter-spacing: var(--tracking-micro); text-transform: uppercase; color: var(--color-muted);
+      white-space: nowrap; display: inline-flex; align-items: center; gap: 0.65rem;
+    }
+    .callout--left { left: 0; }
+    .callout--right { right: 0; flex-direction: row-reverse; }
+    .callout span { background: oklch(15% 0.014 265 / 0.85); padding: 3px 6px; border: 1px solid var(--color-rule); border-radius: 2px; }
+    .callout::before { content: ""; display: inline-block; width: clamp(28px, 5vw, 56px); height: 1px; background: linear-gradient(90deg, var(--color-rule-2), var(--color-accent)); }
+    .callout--right::before { background: linear-gradient(90deg, var(--color-accent), var(--color-rule-2)); }
+
+    @keyframes filament-pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.85; }
+    }
+
+    /* ─── Meter Strip ─── */
+    .meter {
+      display: grid; grid-template-columns: 1fr; gap: 0.75rem; align-items: center;
+      padding: 0.85rem var(--page-gutter); border-block: 1px solid var(--color-rule);
+      background: linear-gradient(var(--rule-blueprint) 1px, transparent 1px) 0 0 / 48px 48px, var(--color-paper);
+      position: relative; z-index: 1;
+    }
+    @media (min-width: 820px) { .meter { grid-template-columns: auto 1fr auto; gap: 1.5rem; } }
+    .meter__label {
+      margin: 0; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: var(--tracking-micro);
+      text-transform: uppercase; color: var(--color-muted); display: inline-flex; align-items: center; gap: 0.6em;
+    }
+    .meter__label--right { justify-self: end; color: var(--color-ink); }
+    .meter__dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: oklch(70% 0.18 145); box-shadow: 0 0 8px oklch(70% 0.18 145 / 0.55); }
+    .meter__bars { display: flex; align-items: flex-end; gap: 2px; height: 32px; min-width: 0; }
+    .meter__bars > span { flex: 1; min-width: 1px; height: var(--h, 50%); background: var(--color-accent); border-radius: 0.5px; opacity: 0.85; }
+
+    /* ─── Stats ─── */
+    .stats { max-width: var(--page-max); margin: clamp(3rem, 6vh, 4.5rem) auto var(--section-gap); padding-inline: var(--page-gutter); }
+    .stats__grid { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; border-block-start: 1px solid var(--color-rule); border-block-end: 1px solid var(--color-rule); }
+    @media (max-width: 720px) { .stats__grid { grid-template-columns: 1fr; } }
+    .stat { padding: var(--space-2xl) var(--space-xl); display: flex; flex-direction: column; gap: var(--space-md); }
+    .stat + .stat { border-inline-start: 1px solid var(--color-rule); }
+    @media (max-width: 720px) { .stat + .stat { border-inline-start: 0; border-block-start: 1px solid var(--color-rule); } }
+    .stat__label { font-family: var(--font-label); font-size: 11px; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--color-muted); }
+    .stat__value { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.5rem, 4vw + 1rem, 4.5rem); line-height: 1; letter-spacing: -0.025em; color: var(--color-ink); }
+    .stat__num { display: inline-block; position: relative; }
+    .stat__num::after { content: ""; position: absolute; left: 0; right: 0; bottom: -0.06em; height: 1px; background: var(--color-accent); opacity: 0.4; }
+    .stat__unit { font-size: 0.32em; font-family: var(--font-label); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--color-muted); margin-inline-start: 0.4em; vertical-align: 0.7em; }
+    .stats__note { font-size: 0.8125rem; color: var(--color-muted); margin: var(--space-lg) 0 0; max-width: 60ch; }
+
+    /* ─── Layout Section: API Explorer ─── */
+    .section { max-width: var(--page-max); margin-inline: auto; padding-inline: var(--page-gutter); padding-block-end: var(--section-gap); }
+    .section__head { max-width: 60rem; margin-bottom: var(--space-2xl); }
+    .section__title { font-family: var(--font-display); font-weight: 400; font-size: var(--text-display-s); line-height: var(--lh-tight); letter-spacing: var(--tracking-display); color: var(--color-ink); margin: 0 0 var(--space-lg); }
+    .section__lede { font-size: var(--text-md); color: var(--color-ink-2); max-width: 56ch; }
+
+    /* Explorer Workbench Layout */
+    .workbench {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    @media (min-width: 980px) {
+      .workbench { grid-template-columns: 240px 1fr 1.2fr; }
+    }
+
+    /* Sidebar nav columns */
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .sidebar-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .sidebar-group-title {
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-muted);
+      opacity: 0.6;
+    }
+    .sidebar-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .endpoint-tab-btn {
+      background: none;
+      border: none;
+      text-align: left;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      padding: 0.5rem 0.75rem;
+      color: var(--color-muted);
+      cursor: pointer;
+      border-radius: var(--radius-card);
+      transition: all 180ms;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .endpoint-tab-btn:hover {
+      color: var(--color-ink);
+      background: var(--color-paper-2);
+    }
+    .endpoint-tab-btn.is-active {
+      color: var(--color-ink);
+      background: var(--color-paper-3);
+      border-left: 2px solid var(--color-accent);
+      border-radius: 0 var(--radius-card) var(--radius-card) 0;
+    }
+    .tab-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      background: rgba(76, 175, 80, 0.1);
+      color: #81c784;
+    }
+
+    /* Form Fields & Table styling inside center panel */
+    .explorer-panel {
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-card);
+      background: var(--color-paper-2);
+      padding: var(--space-xl);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .endpoint-info {
+      border-bottom: 1px solid var(--color-rule);
+      padding-bottom: 1rem;
+    }
+    .endpoint-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+    .endpoint-route {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--color-accent);
+    }
+    .param-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .param-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .param-label {
+      font-family: var(--font-label);
+      font-size: 11px;
+      color: var(--color-ink-2);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-label);
+      display: flex;
+      justify-content: space-between;
+    }
+    .param-label span {
+      color: var(--color-accent-2);
+    }
+    .param-input {
+      background: var(--color-paper-3);
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-input);
+      padding: 0.65rem 0.9rem;
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      transition: all 180ms;
+    }
+    .param-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      background: var(--color-paper);
+    }
+
+    /* Code response sandbox */
+    .sandbox-panel {
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      background: oklch(15% 0.014 265 / 0.4);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 480px;
+    }
+    .sandbox-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--color-rule);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-muted);
+    }
+    .sandbox-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-muted);
+    }
+    .status-dot.success { background: #81c784; }
+    .status-dot.loading { background: #ffd54f; }
+    .status-dot.error { background: #e57373; }
+    .sandbox-body {
+      flex: 1;
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      color: var(--color-ink-2);
+      overflow: auto;
+      white-space: pre-wrap;
+      max-height: 520px;
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--color-rule);
+      padding-block: var(--space-3xl);
+      background: var(--color-paper-2);
+    }
+    .footer__inner {
+      max-width: var(--page-max);
+      margin-inline: auto;
+      padding-inline: var(--page-gutter);
+    }
+    .footer__statement {
+      font-family: var(--font-display);
+      font-size: var(--text-display-s);
+      line-height: var(--lh-tight);
+      color: var(--color-ink);
+      margin-bottom: var(--space-2xl);
+    }
+    .footer__meta {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      padding-top: var(--space-xl);
+      border-top: 1px solid var(--color-rule);
+    }
+    @media (min-width: 720px) {
+      .footer__meta { grid-template-columns: 0.4fr 1fr 1fr 1fr; }
+    }
+    .footer__col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--color-muted);
+    }
+    .footer__col a:hover {
+      color: var(--color-ink);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <header class="nav" role="banner">
+    <div class="nav__pill">
+      <a class="nav__wordmark" href="#" aria-label="Muzo — home">
+        <span class="nav__mark" aria-hidden="true"></span>
+        Muzo
+      </a>
+      <nav class="nav__links" aria-label="Primary">
+        <a href="#explorer">Explorer</a>
+        <a href="#specifications">Specs</a>
+        <a href="https://github.com/shashwat-coding/ytify-backend" target="_blank">Repository</a>
+      </nav>
+      <div class="nav__cta">
+        <a class="btn btn--accent" href="#explorer">Test API</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__grid" aria-hidden="true"></div>
+      <div class="hero__emit" aria-hidden="true"></div>
+
+      <div class="hero__inner">
+        <div class="hero__copy">
+          <p class="eyebrow"><span class="ord">00</span><span class="dot-mid">·</span>API Platform</p>
+          <h1 class="hero__title" id="hero-title">
+            Built to&nbsp;<em>stream</em>&nbsp;in real time.
+          </h1>
+          <p class="hero__lede">
+            Muzo is a high-performance serverless music catalog and streaming resolver.
+            Resolve YouTube Music & JioSaavn resources using a single endpoint structure.
+            Compatible with Vercel edge routes.
+          </p>
+          <div class="hero__cta">
+            <a class="btn btn--accent" href="#explorer">Explore Endpoints</a>
+            <a class="btn btn--ghost" href="https://github.com/shashwat-coding/ytify-backend" target="_blank">Github Repo →</a>
+          </div>
+          <dl class="hero__spec" aria-label="Specification">
+            <div class="hero__spec-pair"><dt>Runtime</dt><dd>NodeJS Serverless v18 — v20</dd></div>
+            <div class="hero__spec-pair"><dt>Backends</dt><dd>YouTubei · JioSaavn API</dd></div>
+            <div class="hero__spec-pair"><dt>Coverage</dt><dd>Songs · Albums · Artists · Playlists · Audio Streams</dd></div>
+          </dl>
+        </div>
+
+        <!-- Apparatus -->
+        <figure class="apparatus" aria-hidden="true">
+          <div class="chamber">
+            <span class="chamber__cap chamber__cap--top"></span>
+            <span class="chamber__cap chamber__cap--bottom"></span>
+            <span class="chamber__electrode" style="--y: 22%"></span>
+            <span class="chamber__electrode" style="--y: 42%"></span>
+            <span class="chamber__electrode" style="--y: 62%"></span>
+            <span class="chamber__electrode" style="--y: 82%"></span>
+            <span class="chamber__halo"></span>
+            <span class="chamber__filament"></span>
+            <p class="chamber__stencil">MZ-02</p>
+          </div>
+
+          <ul class="callouts">
+            <li class="callout callout--left"  style="--y: 18%"><span>P50 · 28 ms</span></li>
+            <li class="callout callout--right" style="--y: 36%"><span>Cold Start · 0.1 s</span></li>
+            <li class="callout callout--left"  style="--y: 56%"><span>Uptime · 99.9%</span></li>
+            <li class="callout callout--right" style="--y: 78%"><span>Serverless Edge</span></li>
+          </ul>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Meter Strip -->
+    <aside class="meter" aria-label="Live signal readout">
+      <p class="meter__label meter__label--left">
+        <span class="meter__dot" aria-hidden="true"></span>
+        Resolver MZ-02 · online
+      </p>
+      <div class="meter__bars" aria-hidden="true">
+        <span style="--h: 28%"></span><span style="--h: 32%"></span><span style="--h: 38%"></span>
+        <span style="--h: 44%"></span><span style="--h: 52%"></span><span style="--h: 58%"></span>
+        <span style="--h: 64%"></span><span style="--h: 68%"></span><span style="--h: 72%"></span>
+        <span style="--h: 78%"></span><span style="--h: 82%"></span><span style="--h: 88%"></span>
+        <span style="--h: 92%"></span><span style="--h: 96%"></span><span style="--h: 100%"></span>
+        <span style="--h: 94%"></span><span style="--h: 88%"></span><span style="--h: 82%"></span>
+        <span style="--h: 74%"></span><span style="--h: 64%"></span><span style="--h: 58%"></span>
+        <span style="--h: 52%"></span><span style="--h: 44%"></span><span style="--h: 40%"></span>
+        <span style="--h: 36%"></span><span style="--h: 32%"></span><span style="--h: 28%"></span>
+        <span style="--h: 22%"></span><span style="--h: 28%"></span><span style="--h: 34%"></span>
+        <span style="--h: 38%"></span><span style="--h: 46%"></span><span style="--h: 54%"></span>
+        <span style="--h: 62%"></span><span style="--h: 70%"></span><span style="--h: 76%"></span>
+        <span style="--h: 82%"></span><span style="--h: 88%"></span><span style="--h: 92%"></span>
+      </div>
+      <p class="meter__label meter__label--right">
+        latency: 28 ms · bandwidth optimal
+      </p>
+    </aside>
+
+    <!-- Stats -->
+    <section class="stats" id="specifications" aria-label="Performance Stats">
+      <dl class="stats__grid">
+        <div class="stat">
+          <dt class="stat__label">P50 Latency</dt>
+          <dd class="stat__value"><span class="stat__num">28</span><span class="stat__unit">ms</span></dd>
+        </div>
+        <div class="stat">
+          <dt class="stat__label">Endpoint Count</dt>
+          <dd class="stat__value"><span class="stat__num">22</span><span class="stat__unit">routers</span></dd>
+        </div>
+        <div class="stat">
+          <dt class="stat__label">Deployment</dt>
+          <dd class="stat__value"><span class="stat__num">100</span><span class="stat__unit">% serverless</span></dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Explorer Sandbox -->
+    <section class="section" id="explorer">
+      <header class="section__head">
+        <p class="eyebrow"><span class="ord">01</span><span class="dot-mid">·</span>Interactive Docs</p>
+        <h2 class="section__title">Muzo API Explorer</h2>
+        <p class="section__lede">
+          Choose an endpoint, configure arguments in the center column, and execute to fetch live payload outputs.
+        </p>
+      </header>
+
+      <div class="workbench">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar-nav">
+          <div class="sidebar-group">
+            <span class="sidebar-group-title">Search & Suggestions</span>
+            <div class="sidebar-buttons">
+              <button class="endpoint-tab-btn is-active" data-target="search"><span>YT Music Search</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="suggestions"><span>Suggestions</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="yt_search"><span>YouTube Search</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="yt_playlists"><span>YouTube Playlists</span> <span class="tab-badge">GET</span></button>
+            </div>
+          </div>
+
+          <div class="sidebar-group">
+            <span class="sidebar-group-title">JioSaavn Resolver</span>
+            <div class="sidebar-buttons">
+              <button class="endpoint-tab-btn" data-target="saavn_search"><span>Search Track</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="saavn_all"><span>Search All</span> <span class="tab-badge">GET</span></button>
+            </div>
+          </div>
+
+          <div class="sidebar-group">
+            <span class="sidebar-group-title">Streaming & Media</span>
+            <div class="sidebar-buttons">
+              <button class="endpoint-tab-btn" data-target="music_find"><span>Music Find</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="stream"><span>Get Stream</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="watch_playlist"><span>Watch Playlist</span> <span class="tab-badge">GET</span></button>
+            </div>
+          </div>
+
+          <div class="sidebar-group">
+            <span class="sidebar-group-title">Explore & Charts</span>
+            <div class="sidebar-buttons">
+              <button class="endpoint-tab-btn" data-target="charts"><span>Charts</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="moods"><span>Mood Categories</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="trending"><span>Trending Tracks</span> <span class="tab-badge">GET</span></button>
+            </div>
+          </div>
+
+          <div class="sidebar-group">
+            <span class="sidebar-group-title">Entities</span>
+            <div class="sidebar-buttons">
+              <button class="endpoint-tab-btn" data-target="entity_song"><span>Song Details</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="entity_album"><span>Album Details</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="entity_artist"><span>Artist Details</span> <span class="tab-badge">GET</span></button>
+              <button class="endpoint-tab-btn" data-target="entity_playlist"><span>Playlist Details</span> <span class="tab-badge">GET</span></button>
+            </div>
+          </div>
+
+          <div class="sidebar-group">
+            <span class="sidebar-group-title">Lyrics & Canvas (MLC)</span>
+            <div class="sidebar-buttons">
+              <button class="endpoint-tab-btn" data-target="mlc_database"><span>MLC Database</span> <span class="tab-badge" style="background:rgba(139,92,246,0.1);color:var(--color-accent)">INFO</span></button>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Dynamic Form Fields Panel -->
+        <div class="explorer-panel">
+          <div class="endpoint-info">
+            <h3 class="endpoint-title" id="active-title">YT Music Search</h3>
+            <span class="endpoint-route" id="active-route">/api/search</span>
+          </div>
+
+          <div class="param-fields" id="param-container">
+            <!-- Populated dynamically by JS -->
+          </div>
+
+          <button class="btn btn--accent btn--block" id="btn-execute">Execute Request</button>
+        </div>
+
+        <!-- Live Code Response Sandbox -->
+        <div class="sandbox-panel">
+          <div class="sandbox-head">
+            <span class="console-url" id="sandbox-url">/api/search?q=Adele</span>
+            <div class="sandbox-status">
+              <span class="status-dot" id="status-dot"></span>
+              <span id="status-text">idle</span>
+            </div>
+          </div>
+          <pre class="sandbox-body" id="response-block">Select an endpoint, input arguments, and click "Execute Request".</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <p class="footer__statement">
+        <em>Muzo</em>, serverless music catalogs.<br />
+        Built to run fast, scale cleanly, and serve reliably.
+      </p>
+      <div class="footer__meta">
+        <span class="footer__mark" aria-hidden="true"></span>
+        <p class="footer__col">
+          <span>Muzo API Platform</span>
+          <span>Open Source</span>
+        </p>
+        <p class="footer__col">
+          <a href="#explorer">Explorer</a>
+          <a href="#specifications">Specs</a>
+          <a href="https://github.com/shashwat-coding/ytify-backend" target="_blank">Repository</a>
+        </p>
+        <p class="footer__col footer__copy">
+          © 2026 Muzo Serverless<br />
+          <span class="footer__hash">build · vercel.compatible</span>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Configuration of endpoints
+    const endpoints = {
+      search: {
+        title: "YT Music Search",
+        route: "/api/search",
+        params: [
+          { name: "q", required: true, default: "Adele", placeholder: "Search term" },
+          { name: "filter", required: false, default: "", placeholder: "songs, albums, artists, or playlists" }
+        ]
+      },
+      suggestions: {
+        title: "Search Suggestions",
+        route: "/api/search/suggestions",
+        params: [
+          { name: "q", required: true, default: "Coldplay", placeholder: "Autocomplete prefix" }
+        ]
+      },
+      yt_search: {
+        title: "YouTube Video Search",
+        route: "/api/yt_search",
+        params: [
+          { name: "q", required: true, default: "Ed Sheeran", placeholder: "Video search query" }
+        ]
+      },
+      yt_playlists: {
+        title: "YouTube Playlist Search",
+        route: "/api/yt_playlists",
+        params: [
+          { name: "q", required: true, default: "Relaxing Music", placeholder: "Search playlist term" }
+        ]
+      },
+      saavn_search: {
+        title: "JioSaavn Track Search",
+        route: "/api/jiosaavn/search",
+        params: [
+          { name: "title", required: true, default: "Shape Of You", placeholder: "Song title" },
+          { name: "artist", required: false, default: "Ed Sheeran", placeholder: "Artist name" }
+        ]
+      },
+      saavn_all: {
+        title: "JioSaavn Universal Search",
+        route: "/api/jiosaavn/search/all",
+        params: [
+          { name: "q", required: true, default: "Taylor Swift", placeholder: "Global search term" }
+        ]
+      },
+      music_find: {
+        title: "Music Meta & Stream Find",
+        route: "/api/music/find",
+        params: [
+          { name: "name", required: true, default: "Shape Of You", placeholder: "Song name" },
+          { name: "artist", required: false, default: "Ed Sheeran", placeholder: "Artist name" }
+        ]
+      },
+      stream: {
+        title: "Get Streaming Info",
+        route: "/api/stream/:id",
+        params: [
+          { name: "id", required: true, default: "kJQP7kiw5Fk", placeholder: "YouTube Video ID" }
+        ]
+      },
+      watch_playlist: {
+        title: "Get Watch Queue",
+        route: "/api/watch_playlist",
+        params: [
+          { name: "videoId", required: false, default: "kJQP7kiw5Fk", placeholder: "YouTube Video ID" },
+          { name: "playlistId", required: false, default: "PL4fGSI1pDJn6jUj5yKvg8z5Z2m9f_8q4l", placeholder: "Playlist ID" }
+        ]
+      },
+      charts: {
+        title: "Trending Music Charts",
+        route: "/api/charts",
+        params: []
+      },
+      moods: {
+        title: "Mood & Genre Categories",
+        route: "/api/moods",
+        params: []
+      },
+      trending: {
+        title: "Real-time Trending Tracks",
+        route: "/api/trending",
+        params: []
+      },
+      entity_song: {
+        title: "Song Detailed Entity",
+        route: "/api/songs/:videoId",
+        params: [
+          { name: "videoId", required: true, default: "kJQP7kiw5Fk", placeholder: "YouTube Video ID" }
+        ]
+      },
+      entity_album: {
+        title: "Album Detailed Entity",
+        route: "/api/albums/:browseId",
+        params: [
+          { name: "browseId", required: true, default: "MPREb_otY5Z18yHue", placeholder: "Album Browse ID" }
+        ]
+      },
+      entity_artist: {
+        title: "Artist Detailed Entity",
+        route: "/api/artists/:browseId",
+        params: [
+          { name: "browseId", required: true, default: "UCtCgG5867f0ZnbIrc8FpTjA", placeholder: "Artist Browse ID" }
+        ]
+      },
+      entity_playlist: {
+        title: "Playlist Detailed Entity",
+        route: "/api/playlists/:playlistId",
+        params: [
+          { name: "playlistId", required: true, default: "PL4fGSI1pDJn6jUj5yKvg8z5Z2m9f_8q4l", placeholder: "Playlist ID" }
+        ]
+      },
+      mlc_database: {
+        title: "Muzo Lyrics & Canvas API (MLC)",
+        route: "https://mlc.kouzu.in/",
+        infoOnly: true,
+        buttonText: "Open MLC Database ↗",
+        description: "Muzo Lyrics & Canvas (MLC) is an external high-performance database housing synchronized LRC lyrics and canvas video mappings for Spotify tracks. Currently indexing over 28,000 songs and growing daily.",
+        infoData: {
+          name: "Muzo Lyrics & Canvas Database (MLC)",
+          url: "https://mlc.kouzu.in/",
+          status: "operational",
+          stats: {
+            songs_in_db: "> 28,000 tracked songs",
+            daily_growth: "auto-crawled and expanded daily",
+            features: [
+              "synchronized LRC scroll-timed lyrics",
+              "canvas video loop mappings",
+              "spotify track structural mappings"
+            ],
+            also_interested_in: [
+              "Spotify Playlists to YT Music Syncing",
+              "Automatic metadata and cover art cleanup",
+              "Direct MP3/AAC audio streaming link extraction",
+              "Muzo Android/iOS Client Apps"
+            ]
+          }
+        },
+        params: []
+      }
+    };
+
+    let activeKey = "search";
+
+    // Elements
+    const tabButtons = document.querySelectorAll(".endpoint-tab-btn");
+    const activeTitle = document.getElementById("active-title");
+    const activeRoute = document.getElementById("active-route");
+    const paramContainer = document.getElementById("param-container");
+    const btnExecute = document.getElementById("btn-execute");
+    const sandboxUrl = document.getElementById("sandbox-url");
+    const statusDot = document.getElementById("status-dot");
+    const statusText = document.getElementById("status-text");
+    const responseBlock = document.getElementById("response-block");
+
+    // Initialize Form
+    function setupForm(key) {
+      const config = endpoints[key];
+      activeTitle.textContent = config.title;
+      activeRoute.textContent = config.route;
+      paramContainer.innerHTML = "";
+      btnExecute.textContent = "Execute Request";
+
+      if (config.infoOnly) {
+        paramContainer.innerHTML = `<p style="font-size: 0.9rem; color: var(--color-muted); line-height: 1.6;">${config.description}</p>`;
+        btnExecute.textContent = config.buttonText || "Open Database ↗";
+        sandboxUrl.textContent = config.route;
+        statusDot.className = "status-dot success";
+        statusText.textContent = "database info";
+        responseBlock.textContent = JSON.stringify(config.infoData, null, 2);
+        return;
+      }
+
+      config.params.forEach(p => {
+        const field = document.createElement("div");
+        field.className = "param-field";
+
+        field.innerHTML = `
+          <label class="param-label">
+            ${p.name}
+            ${p.required ? "<span>required</span>" : ""}
+          </label>
+          <input type="text" class="param-input" data-param="${p.name}" value="${p.default}" placeholder="${p.placeholder}">
+        `;
+
+        paramContainer.appendChild(field);
+
+        // Update URL preview on input change
+        field.querySelector(".param-input").addEventListener("input", updatePreviewUrl);
+      });
+
+      updatePreviewUrl();
+    }
+
+    // Resolve current URL from inputs
+    function buildTargetUrl() {
+      const config = endpoints[activeKey];
+      if (config.infoOnly) return config.route;
+      let route = config.route;
+      const queryParams = [];
+
+      const inputs = paramContainer.querySelectorAll(".param-input");
+      inputs.forEach(input => {
+        const name = input.getAttribute("data-param");
+        const val = input.value.trim();
+
+        if (route.includes(`:${name}`)) {
+          route = route.replace(`:${name}`, encodeURIComponent(val || `:${name}`));
+        } else if (val !== "") {
+          queryParams.push(`${name}=${encodeURIComponent(val)}`);
+        }
+      });
+
+      if (queryParams.length > 0) {
+        route += `?${queryParams.join("&")}`;
+      }
+
+      return route;
+    }
+
+    function updatePreviewUrl() {
+      sandboxUrl.textContent = buildTargetUrl();
+    }
+
+    // Tab switcher
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        tabButtons.forEach(b => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        activeKey = btn.getAttribute("data-target");
+        setupForm(activeKey);
+      });
+    });
+
+    // Execute Request
+    btnExecute.addEventListener("click", async () => {
+      const config = endpoints[activeKey];
+      if (config.infoOnly) {
+        window.open(config.route, '_blank');
+        return;
+      }
+
+      const targetUrl = buildTargetUrl();
+      sandboxUrl.textContent = targetUrl;
+      
+      statusDot.className = "status-dot loading";
+      statusText.textContent = "executing";
+      responseBlock.textContent = "Fetching payload from serverless endpoint...";
+      btnExecute.disabled = true;
+
+      try {
+        const res = await fetch(targetUrl);
+        const data = await res.json();
+
+        if (res.ok) {
+          statusDot.className = "status-dot success";
+          statusText.textContent = `200 ok`;
+          responseBlock.textContent = JSON.stringify(data, null, 2);
+        } else {
+          statusDot.className = "status-dot error";
+          statusText.textContent = `${res.status} error`;
+          responseBlock.textContent = JSON.stringify(data, null, 2);
+        }
+      } catch (err) {
+        statusDot.className = "status-dot error";
+        statusText.textContent = "failed";
+        responseBlock.textContent = `Network Fetch Error:\n${err.message}`;
+      } finally {
+        btnExecute.disabled = false;
+      }
+    });
+
+    // Initial setup
+    setupForm("search");
+  </script>
+</body>
+</html>
